@@ -1,12 +1,4 @@
-CLI utility for uploading multiple files in parallel and submitting them as a single generation.
-
-### Building
-
-Uses the [Gradle application plugin](http://www.gradle.org/docs/current/userguide/application_plugin.html) for generating distributions.
-
-```
-> ./gradlew clean distZip
-```
+Command line utility for uploading multiple files to Attune in parallel and submitting them as a single generation.
 
 ### Usage
 
@@ -60,4 +52,12 @@ Batch for generation dbc9cb57-9a50-437c-b483-308ab74a7afc submitted. Results:
 File /Users/jason/Downloads/orders.json for entities/orders submitted sucessfully
 File /Users/jason/Downloads/sales.json for entities/sales submitted sucessfully
 Finalization of generation dbc9cb57-9a50-437c-b483-308ab74a7afc success.
+```
+
+### Building
+
+Uses the [Gradle application plugin](http://www.gradle.org/docs/current/userguide/application_plugin.html) for generating distributions.
+
+```
+> ./gradlew clean distZip
 ```
