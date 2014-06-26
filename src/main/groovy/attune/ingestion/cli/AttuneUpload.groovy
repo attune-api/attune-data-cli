@@ -119,6 +119,9 @@ class AttuneUpload {
         s3File.encryptionKey = generator.generateKey().encoded.encodeBase64().toString()
 
         File file = new File(s3File.localPath)
+        if (!file.exists()) {
+            fail "File ${s3File.localPath} does not exist!"
+        }
         String effectiveCompression = 'gzip'
         if (compression) {
             effectiveCompression = compression == 'none' ? null : compression
