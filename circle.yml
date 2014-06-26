@@ -6,8 +6,9 @@ test:
   override:
     - ./gradlew build
 
-artifacts:
-  branch: master
-  commands:
-    - ./gradlew distZip
-    - cp build/distributions $CIRCLE_ARTIFACTS
+deployment:
+  artifacts:
+    branch: master
+    commands:
+      - ./gradlew distZip
+      - cp build/distributions $CIRCLE_ARTIFACTS
