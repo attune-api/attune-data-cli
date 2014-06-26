@@ -11,4 +11,4 @@ deployment:
     branch: master
     commands:
       - ./gradlew distZip
-      - cp build/distributions $CIRCLE_ARTIFACTS
+      - cp -r build/distributions $CIRCLE_ARTIFACTS
