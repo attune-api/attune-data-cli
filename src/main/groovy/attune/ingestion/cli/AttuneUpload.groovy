@@ -221,7 +221,7 @@ class AttuneUpload {
         } else {
             println "Finalization of generation ${version} failed"
             JsonSlurper jsonSlurper = new JsonSlurper()
-            def parsedBody = jsonSlurper.parseText(json.responses[index].body)
+            def parsedBody = jsonSlurper.parseText(json.responses[s3Files.size()].body)
             fail "Error is ${parsedBody.errorMessage}"
         }
     }
