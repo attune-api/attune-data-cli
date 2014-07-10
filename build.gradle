@@ -7,6 +7,11 @@ repositories {
   mavenCentral()
 }
 
+tasks.withType(GroovyCompile) {
+    sourceCompatibility = "1.5"
+    targetCompatibility = "1.5"
+}
+
 dependencies {
   compile 'org.codehaus.groovy:groovy-all:2.3.3'
   compile 'commons-cli:commons-cli:1.2'
