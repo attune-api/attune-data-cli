@@ -51,7 +51,7 @@ class AttuneUpload {
         }
 
         def attuneUpload = new AttuneUpload()
-        attuneUpload.host = options.b ?: 'https://data.attune-staging.co'
+        attuneUpload.host = options.b ?: 'https://data.east1.attune.co'
 
         attuneUpload.oauthKey = options.o
         attuneUpload.version = options.g ?: UUID.randomUUID() as String
