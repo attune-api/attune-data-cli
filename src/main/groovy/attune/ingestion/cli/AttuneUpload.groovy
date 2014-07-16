@@ -134,7 +134,7 @@ class AttuneUpload {
 
         http.request(POST,JSON) {
             uri.path = '/s3Input'
-            body = [md5: md5, encryptionKey: s3File.encryptionKey, compression: effectiveCompression]
+            body = [md5: md5, encryptionKey: s3File.encryptionKey, compression: effectiveCompression, name: file.name]
 
             response.success = { resp, json ->
                 s3File.id = json.id
