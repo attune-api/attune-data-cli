@@ -21,4 +21,13 @@ dependencies {
   compile 'org.rauschig:jarchivelib:0.6.0'
 }
 
+task uberjar(type: Jar) {
+    from files(sourceSets.main.output.classesDir)
+    from configurations.runtime.asFileTree.files.collect { zipTree(it) }
+
+    manifest {
+        attributes 'Main-Class': 'attune.ingestion.cli.AttuneUpload'
+    }
+}
+
 mainClassName = "attune.ingestion.cli.AttuneUpload"
