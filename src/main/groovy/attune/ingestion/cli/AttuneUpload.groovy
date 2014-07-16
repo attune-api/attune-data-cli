@@ -51,7 +51,7 @@ class AttuneUpload {
         }
 
         def attuneUpload = new AttuneUpload()
-        attuneUpload.host = options.b ?: 'https://data.attune-staging.co'
+        attuneUpload.host = options.b ?: 'https://data.east1.attune.co'
 
         attuneUpload.oauthKey = options.o
         attuneUpload.version = options.g ?: UUID.randomUUID() as String
@@ -115,7 +115,6 @@ class AttuneUpload {
 
     private S3InputFile uploadFile(List typeFilePair) {
         S3InputFile s3File = new S3InputFile(resource: typeFilePair[0], localPath: typeFilePair[1])
-        String key = generator.generateKey().encoded.encodeBase64().toString()
         s3File.encryptionKey = generator.generateKey().encoded.encodeBase64().toString()
 
         File file = new File(s3File.localPath)
@@ -134,7 +133,7 @@ class AttuneUpload {
 
         http.request(POST,JSON) {
             uri.path = '/s3Input'
-            body = [md5: md5, encryptionKey: s3File.encryptionKey, compression: effectiveCompression]
+            body = [md5: md5, encryptionKey: s3File.encryptionKey, compression: effectiveCompression, name: file.name]
 
             response.success = { resp, json ->
                 s3File.id = json.id
