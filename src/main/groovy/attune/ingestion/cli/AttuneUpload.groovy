@@ -27,7 +27,6 @@ class AttuneUpload {
     String compression
 
     private KeyGenerator generator = KeyGenerator.getInstance("AES")
-    private HTTPBuilder http
 
     static void main(args) {
         def cli = new CliBuilder(usage: 'attuneUpload [options] resource file ...')
@@ -77,8 +76,6 @@ class AttuneUpload {
     }
 
     void run() {
-        http = new HTTPBuilder( host )
-        http.headers = [Authorization: "Bearer ${oauthKey}"]
 
         generator.init(256, new SecureRandom())
 
@@ -98,7 +95,7 @@ class AttuneUpload {
             ]
             def batchRequest = [process: 'sequential', requests: requests]
 
-            http.request(POST,JSON) {
+            createHttpBuilder().request(POST,JSON) {
                 uri.path = '/batch'
                 body = batchRequest
 
@@ -131,7 +128,7 @@ class AttuneUpload {
         byte[] md5Bytes = DigestUtils.md5(new FileInputStream(file))
         String md5 = md5Bytes.encodeBase64().toString()
 
-        http.request(POST,JSON) {
+        createHttpBuilder().request(POST,JSON) {
             uri.path = '/s3Input'
             body = [md5: md5, encryptionKey: s3File.encryptionKey, compression: effectiveCompression, name: file.name]
 
@@ -223,6 +220,12 @@ class AttuneUpload {
             def parsedBody = jsonSlurper.parseText(json.responses[s3Files.size()].body)
             fail "Error is ${parsedBody.errorMessage}"
         }
+    }
+
+    private createHttpBuilder() {
+        def http = new HTTPBuilder( host )
+        http.headers = [Authorization: "Bearer ${oauthKey}"]
+        http
     }
 
     private File gzipFile(file) {
