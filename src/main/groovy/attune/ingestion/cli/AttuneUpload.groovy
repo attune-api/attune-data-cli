@@ -183,6 +183,10 @@ class AttuneUpload {
         long fileSize = file.length()
         int logThreshold = 10
 
+        if (fileSize > (5000 * 1000 * 1000) ) {
+            fail("File ${s3File.localPath} is larger than the maximum allowed size of 5GB for upload")
+        }
+
         while ((count =inputStream.read(buf)) != -1)
         {
             out.write(buf, 0, count)
