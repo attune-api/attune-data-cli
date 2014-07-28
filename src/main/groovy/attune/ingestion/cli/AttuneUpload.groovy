@@ -234,7 +234,7 @@ class AttuneUpload {
 
     private File gzipFile(file) {
         Compressor compressor = CompressorFactory.createCompressor(CompressionType.GZIP)
-        File dest = new File(file.parent, file.name + '.gz')
+        File dest = file.parent ? new File(file.parent, file.name + '.gz') : new File(file.name + '.gz')
         compressor.compress(file, dest)
         dest
     }
