@@ -146,6 +146,9 @@ class AttuneUpload {
     }
 
     private void performUpload(s3File, file, md5, retry = 0) {
+        if (file.length() > (5000L * 1000L * 1000L) ) {
+            fail("File ${s3File.localPath} is larger than the maximum allowed size of 5GB for upload")
+        }
 
         println "Uploading file ${s3File.localPath} for ${s3File.resource} with id ${s3File.id}"
 
