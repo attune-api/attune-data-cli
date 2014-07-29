@@ -155,14 +155,7 @@ class AttuneUpload {
         URL url = new URL(s3File.uploadUrl)
 
         try {
-            def connection= url.openConnection()
-            connection.doOutput = true
-            connection.requestMethod = "PUT"
-            connection.fixedLengthStreamingMode = file.length()
-            connection.setRequestProperty(Headers.CONTENT_MD5, md5)
-            connection.setRequestProperty(Headers.SERVER_SIDE_ENCRYPTION_CUSTOMER_ALGORITHM, ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION)
-            connection.setRequestProperty(Headers.SERVER_SIDE_ENCRYPTION_CUSTOMER_KEY, s3File.encryptionKey)
-            connection.setRequestProperty(Headers.SERVER_SIDE_ENCRYPTION_CUSTOMER_KEY_MD5, s3File.encryptionKeyMd5)
+            def connection= initS3Connection(url, s3File, file, md5)
 
             writeToConnection(s3File, file, connection)
 
@@ -186,6 +179,18 @@ class AttuneUpload {
             println "Attempting retry ${retry} for ${s3File.localPath}"
             performUpload(s3File, file, md5, retry)
         }
+    }
+
+    private initS3Connection(url, s3File, file, md5) {
+        def connection = url.openConnection()
+        connection.doOutput = true
+        connection.requestMethod = "PUT"
+        connection.fixedLengthStreamingMode = file.length()
+        connection.setRequestProperty(Headers.CONTENT_MD5, md5)
+        connection.setRequestProperty(Headers.SERVER_SIDE_ENCRYPTION_CUSTOMER_ALGORITHM, ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION)
+        connection.setRequestProperty(Headers.SERVER_SIDE_ENCRYPTION_CUSTOMER_KEY, s3File.encryptionKey)
+        connection.setRequestProperty(Headers.SERVER_SIDE_ENCRYPTION_CUSTOMER_KEY_MD5, s3File.encryptionKeyMd5)
+        connection
     }
 
     private void writeToConnection(s3File, file, connection, retry = 0) {
