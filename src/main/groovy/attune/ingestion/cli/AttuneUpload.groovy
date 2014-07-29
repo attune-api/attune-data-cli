@@ -145,35 +145,47 @@ class AttuneUpload {
         s3File
     }
 
-    private void performUpload(s3File, file, md5) {
+    private void performUpload(s3File, file, md5, retry = 0) {
 
         println "Uploading file ${s3File.localPath} for ${s3File.resource} with id ${s3File.id}"
 
         URL url = new URL(s3File.uploadUrl)
 
-        def connection= url.openConnection()
-        connection.doOutput = true
-        connection.requestMethod = "PUT"
-        connection.fixedLengthStreamingMode = file.length()
-        connection.setRequestProperty(Headers.CONTENT_MD5, md5)
-        connection.setRequestProperty(Headers.SERVER_SIDE_ENCRYPTION_CUSTOMER_ALGORITHM, ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION)
-        connection.setRequestProperty(Headers.SERVER_SIDE_ENCRYPTION_CUSTOMER_KEY, s3File.encryptionKey)
-        connection.setRequestProperty(Headers.SERVER_SIDE_ENCRYPTION_CUSTOMER_KEY_MD5, s3File.encryptionKeyMd5)
+        try {
+            def connection= url.openConnection()
+            connection.doOutput = true
+            connection.requestMethod = "PUT"
+            connection.fixedLengthStreamingMode = file.length()
+            connection.setRequestProperty(Headers.CONTENT_MD5, md5)
+            connection.setRequestProperty(Headers.SERVER_SIDE_ENCRYPTION_CUSTOMER_ALGORITHM, ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION)
+            connection.setRequestProperty(Headers.SERVER_SIDE_ENCRYPTION_CUSTOMER_KEY, s3File.encryptionKey)
+            connection.setRequestProperty(Headers.SERVER_SIDE_ENCRYPTION_CUSTOMER_KEY_MD5, s3File.encryptionKeyMd5)
 
-        writeToConnection(s3File, file, connection)
-        println("File  ${s3File.localPath} for ${s3File.resource} upload completed, checking result")
-        int responseCode = connection.responseCode
+            writeToConnection(s3File, file, connection)
 
-        if (responseCode == 200) {
-            println("File ${s3File.localPath} for ${s3File.resource} successfully uploaded.")
-        } else {
-            Scanner s = new Scanner(connection.getErrorStream())
-            s.useDelimiter("\\Z")
-            fail "Error uploading  ${s3File.localPath} for ${s3File.resource}: ${s.next()}"
+            println("File  ${s3File.localPath} for ${s3File.resource} upload completed, checking result")
+            int responseCode = connection.responseCode
+
+            if (responseCode == 200) {
+                println("File ${s3File.localPath} for ${s3File.resource} successfully uploaded.")
+            } else {
+                Scanner s = new Scanner(connection.getErrorStream())
+                s.useDelimiter("\\Z")
+                fail "Error uploading  ${s3File.localPath} for ${s3File.resource}: ${s.next()}"
+            }
+        } catch (Throwable t) {
+            if (retry >= 3) {
+                t.printStackTrace()
+                fail("Exiting after maximum retries reached uploading ${s3File.localPath} to S3")
+            }
+            retry++
+            println "Failure uploading file ${s3File.localPath} to S3: ${t.message}"
+            println "Attempting retry ${retry} for ${s3File.localPath}"
+            performUpload(s3File, file, md5, retry)
         }
     }
 
-    private void writeToConnection(s3File, file, connection) {
+    private void writeToConnection(s3File, file, connection, retry = 0) {
         OutputStream out = connection.getOutputStream()
         InputStream inputStream = new FileInputStream(file)
 
@@ -182,10 +194,6 @@ class AttuneUpload {
         int total = 0
         long fileSize = file.length()
         int logThreshold = 10
-
-        if (fileSize > (5000 * 1000 * 1000) ) {
-            fail("File ${s3File.localPath} is larger than the maximum allowed size of 5GB for upload")
-        }
 
         while ((count =inputStream.read(buf)) != -1)
         {
