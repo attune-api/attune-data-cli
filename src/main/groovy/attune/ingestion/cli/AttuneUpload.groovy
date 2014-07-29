@@ -83,29 +83,40 @@ class AttuneUpload {
             def s3Files = typeFilePairs.collectParallel { pair ->
                 uploadFile(pair)
             }
-
-            def requests = s3Files.collect { s3File ->
-                 [relUrl: "${tag}/${s3File.resource}/many?g=${version}".toString(),
+            def requests = s3Files.findResults { s3File ->
+                if (!s3File) {
+                    return null
+                }
+                [relUrl: "${tag}/${s3File.resource}/many?g=${version}".toString(),
                         method: 'PUT', fileId: s3File.id]
             }
-            requests << [
-                relUrl: "${tag}/entities/activeGeneration".toString(),
-                method: 'PUT',
-                body: JsonOutput.toJson([generation: version])
-            ]
-            def batchRequest = [process: 'sequential', requests: requests]
+            def finalize = (requests.size() == s3Files.size())
+            if (finalize) {
+                requests << [
+                    relUrl: "${tag}/entities/activeGeneration".toString(),
+                    method: 'PUT',
+                    body: JsonOutput.toJson([generation: version])
+                ]
+            }
+            if (requests) {
+                def batchRequest = [process: 'sequential', requests: requests]
 
-            createHttpBuilder().request(POST,JSON) {
-                uri.path = '/batch'
-                body = batchRequest
+                createHttpBuilder().request(POST,JSON) {
+                    uri.path = '/batch'
+                    body = batchRequest
 
-                response.success = { resp, json ->
-                    processBatchResponse(json, s3Files)
+                    response.success = { resp, json ->
+                        processBatchResponse(json, s3Files, finalize)
+                    }
+                    response.failure = { resp, json ->
+                        println 'Batch submit failure'
+                        fail json.errorMessage
+                    }
                 }
-                response.failure = { resp, json ->
-                    println 'Batch submit failure'
-                    fail json.errorMessage
-                }
+            }
+            if (!finalize) {
+                println 'Some files did not successfully upload to S3'
+                println "Submitted meta data for generation ${version} but not finalizing"
             }
         }
     }
@@ -141,11 +152,11 @@ class AttuneUpload {
                 fail "Failure uploading file ${s3File.localPath} for ${s3File.resource} with error ${error}"
             }
         }
-        performUpload(s3File, file, md5)
-        s3File
+        def success = performUpload(s3File, file, md5)
+        success ? s3File : null
     }
 
-    private void performUpload(s3File, file, md5, retry = 0) {
+    private boolean performUpload(s3File, file, md5, retry = 0) {
         if (file.length() > (5000L * 1000L * 1000L) ) {
             fail("File ${s3File.localPath} is larger than the maximum allowed size of 5GB for upload")
         }
@@ -167,18 +178,22 @@ class AttuneUpload {
             } else {
                 Scanner s = new Scanner(connection.getErrorStream())
                 s.useDelimiter("\\Z")
-                fail "Error uploading  ${s3File.localPath} for ${s3File.resource}: ${s.next()}"
+                String msg = s.next()
+                println "Error uploading  ${s3File.localPath} for ${s3File.resource}: ${msg}"
+                throw new IOException(msg)
             }
         } catch (Throwable t) {
             if (retry >= 3) {
                 t.printStackTrace()
-                fail("Exiting after maximum retries reached uploading ${s3File.localPath} to S3")
+                println "Maximum retries reached uploading ${s3File.localPath} to S3"
+                return false
             }
             retry++
             println "Failure uploading file ${s3File.localPath} to S3: ${t.message}"
             println "Attempting retry ${retry} for ${s3File.localPath}"
-            performUpload(s3File, file, md5, retry)
+            return performUpload(s3File, file, md5, retry)
         }
+        true
     }
 
     private initS3Connection(url, s3File, file, md5) {
@@ -203,8 +218,7 @@ class AttuneUpload {
         long fileSize = file.length()
         int logThreshold = 10
 
-        while ((count =inputStream.read(buf)) != -1)
-        {
+        while ((count =inputStream.read(buf)) != -1) {
             out.write(buf, 0, count)
             total += count
             int pctComplete = (total / fileSize) * 100
@@ -218,7 +232,7 @@ class AttuneUpload {
         inputStream.close()
     }
 
-    private processBatchResponse(json, s3Files) {
+    private processBatchResponse(json, s3Files, finalize) {
         println "Batch for generation ${version} submitted. Results:"
         s3Files.eachWithIndex { s3File, index ->
             int code = json.responses[index].code
@@ -231,14 +245,16 @@ class AttuneUpload {
                 fail "Error is ${parsedBody.errorMessage}"
             }
         }
-        int code = json.responses[s3Files.size()].code
-        if (code == 202) {
-            println "Finalization of generation ${version} success."
-        } else {
-            println "Finalization of generation ${version} failed"
-            JsonSlurper jsonSlurper = new JsonSlurper()
-            def parsedBody = jsonSlurper.parseText(json.responses[s3Files.size()].body)
-            fail "Error is ${parsedBody.errorMessage}"
+        if (finalize) {
+            int code = json.responses[s3Files.size()].code
+            if (code == 202) {
+                println "Finalization of generation ${version} success."
+            } else {
+                println "Finalization of generation ${version} failed"
+                JsonSlurper jsonSlurper = new JsonSlurper()
+                def parsedBody = jsonSlurper.parseText(json.responses[s3Files.size()].body)
+                fail "Error is ${parsedBody.errorMessage}"
+            }
         }
     }
 
