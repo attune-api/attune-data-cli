@@ -79,7 +79,7 @@ class AttuneUpload {
 
         generator.init(256, new SecureRandom())
 
-        withPool {
+        withPool(8) {
             def s3Files = typeFilePairs.collectParallel { pair ->
                 uploadFile(pair)
             }
