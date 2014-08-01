@@ -79,7 +79,7 @@ class AttuneUpload {
 
         generator.init(256, new SecureRandom())
 
-        withPool(8) {
+        withPool() {
             def s3Files = typeFilePairs.collectParallel { pair ->
                 uploadFile(pair)
             }
@@ -115,8 +115,15 @@ class AttuneUpload {
                 }
             }
             if (!finalize) {
-                println 'Some files did not successfully upload to S3'
                 println "Submitted meta data for generation ${version} but not finalizing"
+                println '\n*****Some files did not successfully upload*****\n'
+                s3Files.eachWithIndex { s3File, i ->
+                    if (!s3File) {
+                        println typeFilePairs[i][1]
+                    }
+                }
+                println ''
+                fail "Re-upload these files using a '-g ${version}' argument to include them in this batch"
             }
         }
     }
@@ -139,21 +146,39 @@ class AttuneUpload {
         byte[] md5Bytes = DigestUtils.md5(new FileInputStream(file))
         String md5 = md5Bytes.encodeBase64().toString()
 
+        boolean success = createAttuneRecord(s3File, md5, effectiveCompression, file.name)
+        if (success) {
+            success = performUpload(s3File, file, md5)
+        }
+        success ? s3File : null
+    }
+
+    private boolean createAttuneRecord(s3File, md5, effectiveCompression, fileName, retry = 0) {
+        boolean success = false
         createHttpBuilder().request(POST,JSON) {
             uri.path = '/s3Input'
-            body = [md5: md5, encryptionKey: s3File.encryptionKey, compression: effectiveCompression, name: file.name]
+            body = [md5: md5, encryptionKey: s3File.encryptionKey, compression: effectiveCompression, name: fileName]
 
             response.success = { resp, json ->
                 s3File.id = json.id
                 s3File.uploadUrl = json.uploadUrl
+                success = true
             }
             response.failure = { resp, json ->
-                String error = json?.errorMessage ?: resp.status
-                fail "Failure uploading file ${s3File.localPath} for ${s3File.resource} with error ${error}"
+                String error = json?.message ?: resp.status
+                println "Failure uploading file ${s3File.localPath} for ${s3File.resource} with error ${error}"
             }
         }
-        def success = performUpload(s3File, file, md5)
-        success ? s3File : null
+        if (!success) {
+            if (retry < 3) {
+                retry++
+                println "Retrying registering ${s3File.localPath}"
+                return createAttuneRecord(s3File, md5, effectiveCompression, fileName, retry)
+            } else {
+                println "Maximum retries exceeded for registering ${s3File.localPath} with Attune, failing this upload"
+            }
+        }
+        success
     }
 
     private boolean performUpload(s3File, file, md5, retry = 0) {
