@@ -38,5 +38,5 @@ Finalization of generation dbc9cb57-9a50-437c-b483-308ab74a7afc success.
 Uses the [Gradle application plugin](http://www.gradle.org/docs/current/userguide/application_plugin.html) for generating distributions.
 
 ```
-> ./gradlew clean distZip
+> ./gradle clean distZip
 ```
