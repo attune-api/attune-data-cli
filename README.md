@@ -1,4 +1,17 @@
-Command line utility for uploading multiple files to Attune in parallel and submitting them as a single generation.
+# AttuneUpload
+AttuneUpload is a command line utility that can be used to upload files to Attune.  AttuneUpload copies the files to Attune's AWS S3 bucket and trigger's their processing by
+invoking Attune's data processing API.  It supports compressing and encrypting file before upload.  AttuneUpload runs on Java and therefore can be deployed on a wide variety
+of machine architectures.
+
+### Installation
+#### Prerequisites
+AttuneUpload requires Java to be pre-installed.  It runs on JDK 6 or above.
+AttuneUpload can be installed on Windows or Unix/Linux servers.
+The server should be able to reach Amazon AWS and the Attune data api (https://data-api.attune.co) which is deployed on Amazon EC2.
+
+#### Install Steps
+AttuneUpload is delivered as a zip archive.  To install, simply unzip the archive to a convenient location.  The installation requires roughly 35MB free disk space.
+Ensure that the user running AttuneUpload is able to run Java.  This requires that the JAVA_HOME environment variable is set and the java executable is in the path.
 
 ### Usage
 
@@ -14,12 +27,16 @@ usage: attuneUpload [options] resource file ...
  -h,--help                display this message
  -o,--oauth <arg>         oauth bearer token for authentication
  -v,--version <arg>       api version, default v1
+ resource                 the type of data contained in the file
+ file                     the file containing the actual data to be upload
+ 
+One or more resource file pairs may be specified.
 ```
 
 ### Sample call
 
 ```
-> ./attuneUpload -o d52f247f-34ab-4e56-bb8b-3c87cfbc024a entities/orders /data/Downloads/orders.json entities/sales /data/Downloads/sales.json
+> ./attuneUpload -o b92f247f-345b-4e96-bc68b-a1bce47024a entities/orders /data/Downloads/orders.json entities/sales /data/Downloads/sales.json
 
 Creating gzip for /data/Downloads/orders.json
 Creating gzip for /data/Downloads/sales.json
