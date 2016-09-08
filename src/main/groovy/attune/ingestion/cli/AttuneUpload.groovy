@@ -32,10 +32,10 @@ class AttuneUpload {
         def cli = new CliBuilder(usage: 'attuneUpload [options] resource file ...')
         cli.with {
             h longOpt: 'help', 'display this message'
-            b args: 1, longOpt: 'host', 'hostname to connect to, default attune staging'
+            b args: 1, longOpt: 'host', 'hostname to connect to, default attune staging. Use "https://data-api.attune-staging.co" for staging and "https://data-api.attune.co" for production'
             c args: 1, longOpt: 'compression', 'compression format of file, will gzip file if unspecified; specify \'none\' to skip compression'
             g args: 1, 'generation id for this transaction, random UUID used if not provided'
-            o args: 1, longOpt: 'oauth', 'oauth bearer token for authentication', required: true
+            o args: 1, longOpt: 'oauth', 'oauth bearer token for authentication. Contact Attune for your oAuth credentials.', required: true
             v args: 1, longOpt: 'version', 'api version, default v1'
         }
 
@@ -50,7 +50,7 @@ class AttuneUpload {
         }
 
         def attuneUpload = new AttuneUpload()
-        attuneUpload.host = options.b ?: 'https://data-api.attune.co'
+        attuneUpload.host = options.b ?: 'https://data-api.attune-staging.co'
 
         attuneUpload.oauthKey = options.o
         attuneUpload.version = options.g ?: UUID.randomUUID() as String

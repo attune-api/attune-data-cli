@@ -14,12 +14,13 @@ AttuneUpload is delivered as a zip archive.  To install, simply unzip the archiv
 Ensure that the user running AttuneUpload is able to run Java.  This requires that the JAVA_HOME environment variable is set and the java executable is in the path.
 
 ### Usage
+Attune recommends running AttuneUpload as a scheduled job (via cron or other scheduling software).  Simply run AttuneUpload after a feed file is generated.
 
 ```
 > ./attuneUpload --help
 error: Missing required option: o
-usage: attuneUpload [options] resource file ...
- -b,--host <arg>          hostname to connect to, default attune staging
+usage: attuneUpload [options] type file ...
+ -b,--host <arg>          hostname to connect to. Use "https://data-api.attune-staging.co" for staging and "https://data-api.attune.co" for production
  -c,--compression <arg>   compression format of file, will gzip file if
                           unspecified; specify 'none' to skip compression
  -g <arg>                 generation id for this transaction, random UUID
@@ -27,7 +28,7 @@ usage: attuneUpload [options] resource file ...
  -h,--help                display this message
  -o,--oauth <arg>         oauth bearer token for authentication
  -v,--version <arg>       api version, default v1
- resource                 the type of data contained in the file
+ type                     the type of data contained in the file
  file                     the file containing the actual data to be upload
  
 One or more resource file pairs may be specified.
@@ -36,7 +37,7 @@ One or more resource file pairs may be specified.
 ### Sample call
 
 ```
-> ./attuneUpload -o b92f247f-345b-4e96-bc68b-a1bce47024a entities/orders /data/Downloads/orders.json entities/sales /data/Downloads/sales.json
+> ./attuneUpload -b "https://data-api.attune-staging.co" -o b92f247f-345b-4e96-bc68b-a1bce47024a entities/orders /data/Downloads/orders.json entities/sales /data/Downloads/sales.json
 
 Creating gzip for /data/Downloads/orders.json
 Creating gzip for /data/Downloads/sales.json
